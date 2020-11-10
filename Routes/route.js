@@ -1,12 +1,17 @@
 const express = require('express')
 const Router = express.Router()
 const Blog = require('../DBModels/Blog')
+const User = require('../DBModels/User')
 const slugify = require('slugify')
 const Joi = require('joi')
-const { createIndexes } = require('../DBModels/Blog')
+const Bcrypt=require('bcrypt')
 const Blogschema = Joi.object({
     name: Joi.string().required(),
     desc: Joi.string().required()
+})
+const UserSchema = Joi.object({
+    email: Joi.string().email().required(),
+    password: Joi.string().min(5).required()
 })
 Router.get('/', async (req, res) => {
     res.render("test", { message: "Blog Api" })
@@ -49,9 +54,43 @@ Router.get('/blog/:slug', async (req, res) => {
     }
 })
 
+Router.post('/signup',async(req,res)=>{
+    try{
+let check=await JoiUserValidate(req.body)
+if(!check.error){
+let duplicateCheck=await User.find({email:req.body.email})
+if(duplicateCheck.length===0){
+    const salt=await Bcrypt.genSalt(10)
+    const hashed=await Bcrypt.hash(req.body.password,salt)
+    const user=new User({email:req.body.email,password:hashed})
+    let save=await user.save()
+    res.send({message:"User Created Successfully.",email:save.email,_id:save._id})
+}    
+else{
+    res.send({message:"Email already exists"})
+}
+}
+else{
+    res.send("Invalid parameters")
+}
+}catch(err){
+    res.send(err)
+}
+})
+
 const JoiValidate = async (obj) => {
     try {
         let res = await Blogschema.validateAsync(obj)
+        return true
+    }
+    catch (err) {
+
+        return { error: err.message }
+    }
+}
+const JoiUserValidate = async (obj) => {
+    try {
+        let res = await UserSchema.validateAsync(obj)
         return true
     }
     catch (err) {
