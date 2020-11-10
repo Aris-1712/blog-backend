@@ -3,8 +3,10 @@ const Router = express.Router()
 const Blog = require('../DBModels/Blog')
 const User = require('../DBModels/User')
 const slugify = require('slugify')
+const jwt=require('jsonwebtoken')
 const Joi = require('joi')
-const Bcrypt=require('bcrypt')
+const Bcrypt = require('bcrypt')
+const auth=require('../Middleware/auth')
 const Blogschema = Joi.object({
     name: Joi.string().required(),
     desc: Joi.string().required()
@@ -54,28 +56,61 @@ Router.get('/blog/:slug', async (req, res) => {
     }
 })
 
-Router.post('/signup',async(req,res)=>{
-    try{
-let check=await JoiUserValidate(req.body)
-if(!check.error){
-let duplicateCheck=await User.find({email:req.body.email})
-if(duplicateCheck.length===0){
-    const salt=await Bcrypt.genSalt(10)
-    const hashed=await Bcrypt.hash(req.body.password,salt)
-    const user=new User({email:req.body.email,password:hashed})
-    let save=await user.save()
-    res.send({message:"User Created Successfully.",email:save.email,_id:save._id})
-}    
-else{
-    res.send({message:"Email already exists"})
-}
-}
-else{
-    res.send("Invalid parameters")
-}
-}catch(err){
-    res.send(err)
-}
+Router.post('/signup', async (req, res) => {
+    try {
+        let check = await JoiUserValidate(req.body)
+        if (!check.error) {
+            let duplicateCheck = await User.find({ email: req.body.email })
+            if (duplicateCheck.length === 0) {
+                const salt = await Bcrypt.genSalt(10)
+                const hashed = await Bcrypt.hash(req.body.password, salt)
+                const user = new User({ email: req.body.email, password: hashed })
+                let save = await user.save()
+                res.send({ message: "User Created Successfully.", email: save.email, _id: save._id })
+            }
+            else {
+                res.send({ message: "Email already exists" })
+            }
+        }
+        else {
+            res.send("Invalid parameters")
+        }
+    } catch (err) {
+        res.send(err)
+    }
+})
+
+Router.post("/test",auth,(req,res)=>{
+    res.send({...req.body,_id:req._id})
+})
+
+Router.post('/signin', async (req, res) => {
+    
+    try {
+        let check = await JoiUserValidate(req.body)
+        if (!check.error) {
+            let duplicateCheck = await User.find({ email: req.body.email })
+            if (duplicateCheck.length === 1) {
+                let unhashed = await Bcrypt.compare(req.body.password,duplicateCheck[0].password)
+                if(unhashed){
+                    let token=jwt.sign({_id:duplicateCheck[0]._id},process.env.KEY)
+                    res.header({"x-auth-token":token}).send({_id:duplicateCheck[0]._id,email:duplicateCheck[0].email})
+                }
+                else{
+                    res.send({message:"Invalid email/password"})
+                }
+         
+            }
+            else {
+                res.send({ message: "Email does not exist" })
+            }
+        }
+        else {
+            res.send("Invalid parameters")
+        }
+    } catch (err) {
+        res.send(err)
+    }
 })
 
 const JoiValidate = async (obj) => {
