@@ -23,7 +23,8 @@ Router.get('/', async (req, res) => {
 
 })
 
-Router.post('/new', async (req, res) => {
+Router.post('/new', auth,async (req, res) => {
+    try{
     console.log(req.body)
     let check = await JoiValidate(req.body)
     if (!check.error) {
@@ -43,11 +44,48 @@ Router.post('/new', async (req, res) => {
     else {
         res.status(400).send("Invalid Call")
     }
-
+}catch(err){
+    res.status(400).send("Invalid Call")
+}
 })
 Router.get('/all', async (req, res) => {
     let data = await Blog.find()
     res.send(data)
+})
+
+Router.post('/edit',auth,async(req,res)=>{
+    try{
+    if (req.body.name && req.body._id && req.body.img && req.body.desc) {
+        let blog=await Blog.findById(req.body._id)
+       
+        if(blog){
+            blog.name=req.body.name
+            blog.desc=req.body.desc
+            blog.img=req.body.img
+            let result=await blog.save()
+            res.send("Updated")
+        }else{
+            res.status(400).send("Invalid Call") 
+        }
+    }else{
+        res.status(400).send("Invalid parameters") 
+    }
+}catch(err){
+    res.status(400).send("Invalid parameters") 
+}
+})
+Router.post('/delete',auth,async(req,res)=>{
+    try{
+    if (req.body._id) {
+        let blog=await Blog.findByIdAndRemove(req.body._id)
+        res.send("Deleted")
+        }else{
+            res.status(400).send("Invalid Call") 
+        }
+    
+}catch(err){
+    res.status(400).send("Invalid parameters") 
+}
 })
 
 Router.get('/blog/:slug', async (req, res) => {

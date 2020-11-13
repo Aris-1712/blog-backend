@@ -12,7 +12,7 @@ const auth=(req,res,next)=>{
     }
     }
     else{
-        res.send("No token")
+        res.status(400).send("Bad request")
     }
 }
 
