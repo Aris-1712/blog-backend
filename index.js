@@ -5,7 +5,11 @@ const Router = require('./Routes/route')
 const helmet = require('helmet')
 const mongoose = require('mongoose')
 const express = require('express')
+const cors=require('cors')
 const app = express()
+app.use(cors({
+    exposedHeaders: ['x-auth-token'],
+  }))
 app.use(helmet())
 app.use(express.json())
 app.set('views', __dirname + '/views');

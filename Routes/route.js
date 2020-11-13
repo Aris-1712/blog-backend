@@ -9,7 +9,10 @@ const Bcrypt = require('bcrypt')
 const auth=require('../Middleware/auth')
 const Blogschema = Joi.object({
     name: Joi.string().required(),
-    desc: Joi.string().required()
+    desc: Joi.string().required(),
+    img:Joi.string().required(),
+    userid:Joi.string().required(),
+    useremail:Joi.string().required()
 })
 const UserSchema = Joi.object({
     email: Joi.string().email().required(),
@@ -21,23 +24,24 @@ Router.get('/', async (req, res) => {
 })
 
 Router.post('/new', async (req, res) => {
+    console.log(req.body)
     let check = await JoiValidate(req.body)
     if (!check.error) {
         let slug = slugify(req.body.name, { lower: true })
         let uniquecheck = await Blog.find({ slug: slug })
         if (uniquecheck.length !== 0) {
             let uniquecheck2 = await Blog.find({ slug: new RegExp('^' + slug + '-', 'i') })
-            let blog = new Blog({ name: req.body.name, desc: req.body.desc, slug: slug + "-" + parseInt(uniquecheck2.length + 1) })
+            let blog = new Blog({ name: req.body.name,img:req.body.img,useremail:req.body.useremail,userid:req.body.userid,date:new Date(), desc: req.body.desc, slug: slug + "-" + parseInt(uniquecheck2.length + 1) })
             let save = await blog.save()
             res.send(save)
         } else {
-            let blog = new Blog({ name: req.body.name, desc: req.body.desc, slug: slug })
+            let blog = new Blog({ name: req.body.name,useremail:req.body.useremail,img:req.body.img,userid:req.body.userid,date:new Date(), desc: req.body.desc, slug: slug })
             let save = await blog.save()
-            res.send(save)
+            res.status(200).send(save)
         }
     }
     else {
-        res.render("test", { message: check.error })
+        res.status(400).send("Invalid Call")
     }
 
 })
